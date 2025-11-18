@@ -32,8 +32,7 @@ jobs:
         id: tfout
         run: |
           ip=$(terraform -chdir=infrastructure output -raw ec2_public_ip 2>/dev/null | tr -d '\n')
-          echo "ip=$ip" >> $GITHUB_OUTPUT
-      
+          echo "ip=$ip" >> "$GITHUB_OUTPUT"
 
       - name: Log EC2 IP
         run: |
