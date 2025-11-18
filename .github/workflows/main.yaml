@@ -25,7 +25,7 @@ jobs:
     - name: Capture EC2 IP
       id: tfout
       run: |
-        ip=$(terraform -chdir=infrastructure output -raw ec2_public_ip)
+        ip=$(terraform -chdir=infrastructure output -raw ec2_public_ip | tr -d '\n')
         echo "EC2_IP=$ip" >> $GITHUB_OUTPUT
     outputs:
       EC2_IP: ${{ steps.tfout.outputs.EC2_IP }}
