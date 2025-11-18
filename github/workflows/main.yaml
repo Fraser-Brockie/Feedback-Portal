@@ -1,0 +1,33 @@
+name: Deploy Web App
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Setup SSH
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H ${{ secrets.EC2_IP }} >> ~/.ssh/known_hosts
+
+    - name: Upload web app
+      run: |
+        scp -r web-app/* ec2-user@${{ secrets.EC2_IP }}:/var/www/html/
+
+    - name: Restart Apache
+      run: |
+        ssh ec2-user@${{ secrets.EC2_IP }} "sudo systemctl restart httpd"
+
+    - name: Upload logs to S3
+      run: |
+        echo "Deployment at $(date)" > deploy.log
+        aws s3 cp deploy.log s3://project-shine-deployment-logs/
