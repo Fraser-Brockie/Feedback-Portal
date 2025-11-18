@@ -2,10 +2,21 @@ provider "aws" {
   region = "eu-west-2" # London
 }
 
+# Automatically fetch the latest Amazon Linux 2 AMI in London
+data "aws_ami" "amazon_linux" {
+  most_recent = true
+  owners      = ["amazon"]
+
+  filter {
+    name   = "name"
+    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
+  }
+}
+
 resource "aws_instance" "web" {
-  ami           = "ami-0f29c8402f8cce65c" # Amazon Linux 2 in London
+  ami           = data.aws_ami.amazon_linux.id
   instance_type = "t2.micro"
-  key_name      = "feedback-key"          # must match your AWS key pair
+  key_name      = "feedback-key" # must match your AWS key pair name
 
   user_data = <<-EOF
               #!/bin/bash
