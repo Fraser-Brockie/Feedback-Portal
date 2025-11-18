@@ -1,4 +1,4 @@
-name: Deploy Web App
+name: Deploy Feedback App
 
 on:
   push:
@@ -7,6 +7,12 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      EC2_IP: ${{ secrets.EC2_IP }}
+      SSH_KEY: ${{ secrets.SSH_KEY }}
 
     steps:
     - name: Checkout code
@@ -30,4 +36,4 @@ jobs:
     - name: Upload logs to S3
       run: |
         echo "Deployment at $(date)" > deploy.log
-        aws s3 cp deploy.log s3://project-shine-deployment-logs/
+        aws s3 cp deploy.log s3://feedback-deployment-logs/

@@ -1,9 +1,9 @@
 provider "aws" {
-  region = "us-east-1"
+  region     = "us-east-1"
 }
 
 resource "aws_instance" "web" {
-  ami           = "ami-0c55b159cbfafe1f0" # Amazon Linux 2
+  ami           = "ami-0c55b159cbfafe1f0"
   instance_type = "t2.micro"
   key_name      = "your-key-pair"
 
@@ -17,12 +17,16 @@ resource "aws_instance" "web" {
             EOF
 
   tags = {
-    Name = "DevOpsDemoInstance"
+    Name = "FeedbackDemoInstance"
   }
 }
 
 resource "aws_s3_bucket" "logs" {
-  bucket = "project-shine-deployment-logs"
+  bucket = "feedback-deployment-logs"
+}
+
+resource "aws_s3_bucket_acl" "logs_acl" {
+  bucket = aws_s3_bucket.logs.id
   acl    = "private"
 }
 
