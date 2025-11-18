@@ -33,11 +33,12 @@ jobs:
 
     - name: Log EC2 IP
       env:
-          EC2_IP: ${{ steps.tfout.outputs.ec2_ip }}
-      run:
-          echo "Provisioned EC2 IP: $EC2_IP"
-
-
+        EC2_IP: ${{ steps.tfout.outputs.ec2_ip }}
+      run: |
+        echo "Provisioned EC2 IP: $EC2_IP"
+    
+    
+    
 
     outputs:
       EC2_IP: ${{ steps.tfout.outputs.ec2_ip }}
