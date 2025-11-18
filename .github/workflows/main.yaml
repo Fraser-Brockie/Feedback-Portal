@@ -40,7 +40,6 @@ jobs:
 
     outputs:
       EC2_IP: ${{ steps.tfout.outputs.ip }}
-
   deploy:
     needs: terraform
     runs-on: ubuntu-latest
