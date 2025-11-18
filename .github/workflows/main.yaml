@@ -1,74 +1,40 @@
-name: Deploy EC2 with Terraform
+name: Deploy Feedback Web App
 
 on:
   push:
-    branches: [main]
-  workflow_dispatch:
+    branches: [ "main" ]
 
 jobs:
-  terraform:
+  deploy:
     runs-on: ubuntu-latest
     env:
+      AWS_REGION: ${{ secrets.AWS_REGION }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: 1.6.6
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
 
-      - name: Check Terraform
-        run: terraform -version
-
-      - name: Terraform Init
-        run: terraform -chdir=infrastructure init
-
-      - name: Terraform Apply
-        run: terraform -chdir=infrastructure apply -auto-approve
-
-      - name: Capture EC2 IP
-        id: tfout
+      - name: Terraform Init & Apply
         run: |
-          ip=$(terraform -chdir=infrastructure output ec2_public_ip | tr -d '"' | tr -d '\n')
-          echo "ip=$ip" >> "$GITHUB_OUTPUT"
+          terraform -chdir=infrastructure init
+          terraform -chdir=infrastructure apply -auto-approve
 
-      - name: Log EC2 IP
+      - name: Capture Terraform outputs
         run: |
-          echo "Provisioned EC2 IP: ${{ steps.tfout.outputs.ip }}"
+          EC2_IP=$(terraform -chdir=infrastructure output -raw ec2_public_ip)
+          echo "EC2_IP=$EC2_IP" >> $GITHUB_ENV
 
-    outputs:
-      EC2_IP: ${{ steps.tfout.outputs.ip }}
+      - name: Write SSH key
+        run: |
+          echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ssh.key
+          chmod 600 ssh.key
 
-
-  deploy:
-    needs: terraform
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-
-    - name: Setup SSH
-      env:
-        EC2_IP: ${{ needs.terraform.outputs.EC2_IP }}
-        SSH_KEY: ${{ secrets.SSH_KEY }}
-      run: |
-        mkdir -p ~/.ssh
-        echo "$SSH_KEY" > ~/.ssh/id_rsa
-        chmod 600 ~/.ssh/id_rsa
-        ssh-keyscan -H "$EC2_IP" >> ~/.ssh/known_hosts
-
-    - name: Upload web app
-      env:
-        EC2_IP: ${{ needs.terraform.outputs.EC2_IP }}
-      run: scp -o StrictHostKeyChecking=no -r web-app/* ec2-user@$EC2_IP:/var/www/html/
-
-    - name: Restart Apache
-      env:
-        EC2_IP: ${{ needs.terraform.outputs.EC2_IP }}
-      run: ssh -o StrictHostKeyChecking=no ec2-user@$EC2_IP "sudo systemctl restart httpd"
-
-    - name: Health Check
-      env:
-        EC2_IP: ${{ needs.terraform.outputs.EC2_IP }}
-      run: curl -I http://$EC2_IP
+      - name: Upload feedback app
+        run: |
+          scp -o StrictHostKeyChecking=no -i ssh.key web-app/index.html ec2-user@${EC2_IP}:/tmp/index.html
+          ssh -o StrictHostKeyChecking=no -i ssh.key ec2-user@${EC2_IP} "sudo mv /tmp/index.html /var/www/html/index.html && sudo systemctl restart httpd"

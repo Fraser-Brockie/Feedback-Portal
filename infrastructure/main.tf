@@ -1,28 +1,33 @@
-terraform {
-  backend "s3" {
-    bucket  = "my-feedback-terraform-state-bucket"
-    key     = "ec2/terraform.tfstate"
-    region  = "eu-west-2"
-    encrypt = true
-  }
-
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
-  }
-}
-
 provider "aws" {
-  region = "eu-west-2"
+  region = "eu-west-2" # London
 }
 
-# Automatically fetch the latest Amazon Linux 2 AMI
-data "aws_ami" "amazon_linux" {
-  most_recent = true
-  owners      = ["amazon"]
+resource "aws_security_group" "web_sg" {
+  name        = "feedback-sg"
+  description = "Allow HTTP and SSH"
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
 
+data "aws_ami" "amazonlinux" {
+  owners      = ["amazon"]
+  most_recent = true
   filter {
     name   = "name"
     values = ["amzn2-ami-hvm-*-x86_64-gp2"]
@@ -30,22 +35,18 @@ data "aws_ami" "amazon_linux" {
 }
 
 resource "aws_instance" "web" {
-  ami           = data.aws_ami.amazon_linux.id
-  instance_type = "t3.micro"                # Free Tier eligible in London
-  key_name      = "feedback-key"            # must match your AWS key pair
-
-  user_data = <<-EOF
-              #!/bin/bash
-              yum update -y
-              yum install -y httpd
-              systemctl enable httpd
-              systemctl start httpd
-              echo "Apache is running" > /var/www/html/index.html
-            EOF
-
-  tags = {
-    Name = "FeedbackDemoInstance"
-  }
+  ami                    = data.aws_ami.amazonlinux.id
+  instance_type          = "t3.micro"
+  vpc_security_group_ids = [aws_security_group.web_sg.id]
+  key_name               = "your-keypair-name"
+  user_data              = <<-EOF
+    #!/bin/bash
+    yum update -y
+    yum install -y httpd
+    systemctl enable httpd
+    echo "<h1>Apache is running</h1>" > /var/www/html/index.html
+    systemctl start httpd
+  EOF
 }
 
 output "ec2_public_ip" {
