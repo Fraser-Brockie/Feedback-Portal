@@ -27,7 +27,7 @@ jobs:
       run: |
         ip=$(terraform -chdir=infrastructure output -raw ec2_public_ip)
         echo "EC2_IP=$ip" >> $GITHUB_ENV
-        echo "::set-output name=EC2_IP::$ip"
+        echo "EC2_IP=$ip" >> $GITHUB_OUTPUT
     outputs:
       EC2_IP: ${{ steps.tfout.outputs.EC2_IP }}
 
@@ -45,10 +45,10 @@ jobs:
         mkdir -p ~/.ssh
         echo "${SSH_KEY}" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
-        ssh-keyscan -H "${EC2_IP}" >> ~/.ssh/known_hosts
+        ssh-keyscan -H "$EC2_IP" >> ~/.ssh/known_hosts
 
     - name: Upload web app
-      run: scp -o StrictHostKeyChecking=no -r web-app/* ec2-user@${EC2_IP}:/var/www/html/
+      run: scp -o StrictHostKeyChecking=no -r web-app/* ec2-user@$EC2_IP:/var/www/html/
 
     - name: Restart Apache
-      run: ssh -o StrictHostKeyChecking=no ec2-user@${EC2_IP} "sudo systemctl restart httpd"
+      run: ssh -o StrictHostKeyChecking=no ec2-user@$EC2_IP "sudo systemctl restart httpd"
