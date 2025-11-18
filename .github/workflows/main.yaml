@@ -37,9 +37,9 @@ jobs:
     - name: Log EC2 IP
       env:
         EC2_IP: ${{ steps.tfout.outputs.EC2_IP }}
-      run: |
+      run:
         echo "Provisioned EC2 IP: $EC2_IP"
-    
+
 
     outputs:
       EC2_IP: ${{ steps.tfout.outputs.EC2_IP }}
@@ -47,33 +47,30 @@ jobs:
   deploy:
     needs: terraform
     runs-on: ubuntu-latest
-    env:
-      EC2_IP: ${{ needs.terraform.outputs.EC2_IP }}
-      SSH_KEY: ${{ secrets.SSH_KEY }}
     steps:
     - uses: actions/checkout@v3
 
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v2
-      with:
-        terraform_version: 1.6.6
-
-    - name: Check Terraform
-      run: terraform -version
-
-
     - name: Setup SSH
+      env:
+        EC2_IP: ${{ needs.terraform.outputs.EC2_IP }}
+        SSH_KEY: ${{ secrets.SSH_KEY }}
       run: |
         mkdir -p ~/.ssh
-        echo "${SSH_KEY}" > ~/.ssh/id_rsa
+        echo "$SSH_KEY" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
         ssh-keyscan -H "$EC2_IP" >> ~/.ssh/known_hosts
 
     - name: Upload web app
+      env:
+        EC2_IP: ${{ needs.terraform.outputs.EC2_IP }}
       run: scp -o StrictHostKeyChecking=no -r web-app/* ec2-user@$EC2_IP:/var/www/html/
 
     - name: Restart Apache
+      env:
+        EC2_IP: ${{ needs.terraform.outputs.EC2_IP }}
       run: ssh -o StrictHostKeyChecking=no ec2-user@$EC2_IP "sudo systemctl restart httpd"
 
     - name: Health Check
+      env:
+        EC2_IP: ${{ needs.terraform.outputs.EC2_IP }}
       run: curl -I http://$EC2_IP
