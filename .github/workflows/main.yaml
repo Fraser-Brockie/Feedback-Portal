@@ -1,39 +1,54 @@
-name: Deploy Feedback App
+name: Deploy EC2 with Terraform
 
 on:
   push:
     branches: [main]
 
 jobs:
-  deploy:
+  terraform:
     runs-on: ubuntu-latest
-
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      EC2_IP: ${{ secrets.EC2_IP }}
-      SSH_KEY: ${{ secrets.SSH_KEY }}
-
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+    - uses: actions/checkout@v3
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+
+    - name: Terraform Init
+      run: terraform -chdir=infrastructure init
+
+    - name: Terraform Apply
+      run: terraform -chdir=infrastructure apply -auto-approve
+
+    - name: Capture EC2 IP
+      id: tfout
+      run: |
+        ip=$(terraform -chdir=infrastructure output -raw ec2_public_ip)
+        echo "EC2_IP=$ip" >> $GITHUB_ENV
+        echo "::set-output name=EC2_IP::$ip"
+    outputs:
+      EC2_IP: ${{ steps.tfout.outputs.EC2_IP }}
+
+  deploy:
+    needs: terraform
+    runs-on: ubuntu-latest
+    env:
+      EC2_IP: ${{ needs.terraform.outputs.EC2_IP }}
+      SSH_KEY: ${{ secrets.SSH_KEY }}
+    steps:
+    - uses: actions/checkout@v3
 
     - name: Setup SSH
       run: |
         mkdir -p ~/.ssh
-        echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_rsa
+        echo "${SSH_KEY}" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
-        ssh-keyscan -H ${{ secrets.EC2_IP }} >> ~/.ssh/known_hosts
+        ssh-keyscan -H "${EC2_IP}" >> ~/.ssh/known_hosts
 
     - name: Upload web app
-      run: |
-        scp -r web-app/* ec2-user@${{ secrets.EC2_IP }}:/var/www/html/
+      run: scp -o StrictHostKeyChecking=no -r web-app/* ec2-user@${EC2_IP}:/var/www/html/
 
     - name: Restart Apache
-      run: |
-        ssh ec2-user@${{ secrets.EC2_IP }} "sudo systemctl restart httpd"
-
-    - name: Upload logs to S3
-      run: |
-        echo "Deployment at $(date)" > deploy.log
-        aws s3 cp deploy.log s3://feedback-deployment-logs/
+      run: ssh -o StrictHostKeyChecking=no ec2-user@${EC2_IP} "sudo systemctl restart httpd"
