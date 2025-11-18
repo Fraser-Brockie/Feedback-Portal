@@ -38,7 +38,7 @@ resource "aws_instance" "web" {
   ami                    = data.aws_ami.amazonlinux.id
   instance_type          = "t3.micro"
   vpc_security_group_ids = [aws_security_group.web_sg.id]
-  key_name               = "your-keypair-name"
+  key_name               = "feedback-key"
   user_data              = <<-EOF
     #!/bin/bash
     yum update -y
