@@ -51,3 +51,5 @@ jobs:
 
     - name: Restart Apache
       run: ssh -o StrictHostKeyChecking=no ec2-user@$EC2_IP "sudo systemctl restart httpd"
+
+  # dummy
