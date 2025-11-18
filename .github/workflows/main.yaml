@@ -35,8 +35,11 @@ jobs:
         echo "EC2_IP=$ip" >> $GITHUB_OUTPUT
 
     - name: Log EC2 IP
+      env:
+        EC2_IP: ${{ steps.tfout.outputs.EC2_IP }}
       run: |
-        echo "Provisioned EC2 IP: ${{ steps.tfout.outputs.EC2_IP }}"
+        echo "Provisioned EC2 IP: $EC2_IP"
+    
 
     outputs:
       EC2_IP: ${{ steps.tfout.outputs.EC2_IP }}
