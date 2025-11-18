@@ -12,36 +12,36 @@ jobs:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v2
-      with:
-        terraform_version: 1.6.6
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.6.6
 
-    - name: Check Terraform
-      run: terraform -version
+      - name: Check Terraform
+        run: terraform -version
 
-    - name: Terraform Init
-      run: terraform -chdir=infrastructure init
+      - name: Terraform Init
+        run: terraform -chdir=infrastructure init
 
-    - name: Terraform Apply
-      run: terraform -chdir=infrastructure apply -auto-approve
+      - name: Terraform Apply
+        run: terraform -chdir=infrastructure apply -auto-approve
 
-    - name: Capture EC2 IP
-      id: tfout
-      run: |
-        ip=$(terraform -chdir=infrastructure output -raw ec2_public_ip | tr -d '\n')
-        echo "EC2_IP=$ip" >> $GITHUB_OUTPUT
+      - name: Capture EC2 IP
+        id: tfout
+        run: |
+          ip=$(terraform -chdir=infrastructure output -raw ec2_public_ip | tr -d '\n')
+          echo "EC2_IP=$ip" >> $GITHUB_OUTPUT
 
-    - name: Log EC2 IP
-      env:
-        EC2_IP: ${{ steps.tfout.outputs.EC2_IP }}
-      run: |
-        echo "Provisioned EC2 IP: $EC2_IP"
+      - name: Log EC2 IP
+        env:
+          EC2_IP: ${{ steps.tfout.outputs.EC2_IP }}
+        run: |
+          echo "Provisioned EC2 IP: $EC2_IP"
 
-  outputs:
-    EC2_IP: ${{ steps.tfout.outputs.EC2_IP }}
+    outputs:
+      EC2_IP: ${{ steps.tfout.outputs.EC2_IP }}
 
   deploy:
     needs: terraform
