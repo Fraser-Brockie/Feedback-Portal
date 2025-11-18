@@ -40,8 +40,8 @@ jobs:
       run: |
         echo "Provisioned EC2 IP: $EC2_IP"
 
-    outputs:
-      EC2_IP: ${{ steps.tfout.outputs.EC2_IP }}
+  outputs:
+    EC2_IP: ${{ steps.tfout.outputs.EC2_IP }}
 
   deploy:
     needs: terraform
