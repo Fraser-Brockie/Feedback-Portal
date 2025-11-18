@@ -36,5 +36,5 @@ jobs:
 
       - name: Upload feedback app
         run: |
-          scp -o StrictHostKeyChecking=no -i ssh.key web-app/index.html ec2-user@${EC2_IP}:/tmp/index.html
+          scp -o StrictHostKeyChecking=no -i ssh.key web-app/feedback.html ec2-user@${EC2_IP}:/tmp/index.html
           ssh -o StrictHostKeyChecking=no -i ssh.key ec2-user@${EC2_IP} "sudo mv /tmp/index.html /var/www/html/index.html && sudo systemctl restart httpd"
