@@ -3,6 +3,7 @@ name: Deploy EC2 with Terraform
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   terraform:
@@ -15,6 +16,8 @@ jobs:
 
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: 1.6.6
 
     - name: Terraform Init
       run: terraform -chdir=infrastructure init
@@ -26,9 +29,13 @@ jobs:
       id: tfout
       run: |
         ip=$(terraform -chdir=infrastructure output -raw ec2_public_ip | tr -d '\n')
-        echo "EC2_IP=$ip" >> $GITHUB_OUTPUT
+        echo "ec2_ip=$ip" >> $GITHUB_OUTPUT
+
+    - name: Log EC2 IP
+      run: echo "Provisioned EC2 IP: ${{ steps.tfout.outputs.ec2_ip }}"
+
     outputs:
-      EC2_IP: ${{ steps.tfout.outputs.EC2_IP }}
+      EC2_IP: ${{ steps.tfout.outputs.ec2_ip }}
 
   deploy:
     needs: terraform
@@ -51,5 +58,3 @@ jobs:
 
     - name: Restart Apache
       run: ssh -o StrictHostKeyChecking=no ec2-user@$EC2_IP "sudo systemctl restart httpd"
-
-  # dummy
