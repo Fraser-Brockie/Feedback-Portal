@@ -1,18 +1,17 @@
-name: Terraform + Deploy
+name: Deploy EC2 via CloudFormation
 
 on:
   push:
     branches: [ "main" ]
+    paths:
+      - "ec2-with-sg.yaml"   # only trigger when this file changes
 
 jobs:
-  terraform:
+  deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -21,13 +20,10 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: eu-west-2
 
-      - name: Terraform Init
-        run: terraform init
-        working-directory: infrastructure
-
-      - name: Terraform Apply
-        run: terraform apply -auto-approve
-        working-directory: infrastructure
-
-      - name: Terraform Output
-        run: terraform output ec2_public_ip
+      - name: Deploy CloudFormation stack
+        run: |
+          aws cloudformation deploy \
+            --template-file ec2-with-sg.yaml \
+            --stack-name FeedbackPortalStack \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --parameter-overrides KeyName=feedback-key
