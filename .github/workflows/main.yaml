@@ -23,9 +23,11 @@ jobs:
 
       - name: Terraform Init
         run: terraform init
+        working-directory: infra
 
       - name: Terraform Apply
         run: terraform apply -auto-approve
+        working-directory: infra
 
       - name: Terraform Output
         run: terraform output ec2_public_ip
