@@ -16,9 +16,12 @@ jobs:
 
       - name: Terraform Init
         run: terraform init
+        working-directory: infrastructure
 
       - name: Terraform Apply
         run: terraform apply -auto-approve
+        working-directory: infrastructure
+
 
       - name: Get EC2 IP
         id: tf-output
