@@ -1,14 +1,7 @@
 provider "aws" {
-  region = "eu-west-2" # London region
+  region = "eu-west-2" # London
 }
 
-# Key pair for SSH access
-resource "aws_key_pair" "feedback_key" {
-  key_name   = "feedback-key"
-  public_key = file("~/.ssh/id_rsa.pub")
-}
-
-# Security group with lifecycle rules
 resource "aws_security_group" "web_sg" {
   name        = "web-sg"
   description = "Allow HTTP and SSH"
@@ -44,11 +37,10 @@ resource "aws_security_group" "web_sg" {
   }
 }
 
-# EC2 instance with user data to install Apache and pull app
 resource "aws_instance" "web" {
-  ami           = "ami-0d729d2846a86a9a8" # Amazon Linux 2 AMI for eu-west-2 (London)
+  ami           = "ami-0d729d2846a86a9a8" # Amazon Linux 2 AMI for eu-west-2
   instance_type = "t2.micro"
-  key_name      = aws_key_pair.feedback_key.key_name
+  key_name      = "feedback-key"          # reference the key you created in console
   security_groups = [aws_security_group.web_sg.name]
 
   user_data = <<-EOF
@@ -67,4 +59,8 @@ resource "aws_instance" "web" {
   }
 
   depends_on = [aws_security_group.web_sg]
+}
+
+output "ec2_public_ip" {
+  value = aws_instance.web.public_ip
 }
