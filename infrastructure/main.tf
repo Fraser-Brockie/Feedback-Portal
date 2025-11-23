@@ -2,6 +2,18 @@ provider "aws" {
   region = "eu-west-2" # London
 }
 
+# Automatically fetch the latest Amazon Linux 2 AMI for eu-west-2
+data "aws_ami" "amazon_linux" {
+  most_recent = true
+  owners      = ["amazon"]
+
+  filter {
+    name   = "name"
+    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
+  }
+}
+
+# Security group for HTTP + SSH
 resource "aws_security_group" "web_sg" {
   name        = "web-sg"
   description = "Allow HTTP and SSH"
@@ -27,20 +39,16 @@ resource "aws_security_group" "web_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  lifecycle {
-    create_before_destroy = true
-    ignore_changes        = [tags]
-  }
-
   tags = {
     Name = "WebAppSG"
   }
 }
 
+# EC2 instance using the latest Amazon Linux 2 AMI
 resource "aws_instance" "web" {
-  ami           = "ami-0d729d2846a86a9a8" # Amazon Linux 2 AMI for eu-west-2
+  ami           = data.aws_ami.amazon_linux.id
   instance_type = "t2.micro"
-  key_name      = "feedback-key"          # reference the key you created in console
+  key_name      = "feedback-key" # key pair you created in console
   security_groups = [aws_security_group.web_sg.name]
 
   user_data = <<-EOF
@@ -57,10 +65,9 @@ resource "aws_instance" "web" {
   tags = {
     Name = "WebAppServer"
   }
-
-  depends_on = [aws_security_group.web_sg]
 }
 
+# Output the public IP so GitHub Actions can use it
 output "ec2_public_ip" {
   value = aws_instance.web.public_ip
 }
