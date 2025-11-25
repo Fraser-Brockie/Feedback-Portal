@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Governance-grade minimal VPC + EC2 with Apache serving repo index.html
+Description: VPC + EC2 with Apache serving Feedback-Portal index.html
 
 Parameters:
   EnvironmentName:
@@ -115,9 +115,11 @@ Resources:
           dnf -y install httpd git || yum -y install httpd git
           systemctl enable httpd
           systemctl start httpd
+
+          # Clone repo and copy index.html
           cd /tmp
-          git clone ${RepoUrl} apprepo
-          cp apprepo/index.html /var/www/html/index.html
+          git clone ${RepoUrl} apprepo || echo "Clone failed" >> /var/log/userdata.log
+          cp /tmp/apprepo/index.html /var/www/html/index.html || echo "Copy failed" >> /var/log/userdata.log
 
 Outputs:
   PublicIP:
