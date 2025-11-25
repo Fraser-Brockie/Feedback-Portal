@@ -5,27 +5,22 @@ Parameters:
   EnvironmentName:
     Type: String
     Default: demo
-    Description: Name prefix for resources
   AllowedCidr:
     Type: String
     Default: 0.0.0.0/0
-    Description: CIDR for inbound HTTP/SSH (tighten to your IP for governance)
   InstanceType:
     Type: String
     Default: t3.micro
-    AllowedValues:
-      - t3.micro
-      - t3.small
-      - t3.medium
-    Description: EC2 instance size
+    AllowedValues: [t3.micro, t3.small, t3.medium]
   LatestAmiId:
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
     Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-x86_64
-    Description: Latest Amazon Linux 2023 AMI (x86_64) in eu-west-2
   RepoUrl:
     Type: String
-    Default: https://github.com/<your-org>/<your-repo>.git
-    Description: Public GitHub repo URL containing index.html
+    Default: https://github.com/Fraser-Brockie/Feedback-Portal.git
+  KeyName:
+    Type: String
+    Default: feedback-key
 
 Resources:
   VPC:
@@ -34,16 +29,9 @@ Resources:
       CidrBlock: 10.0.0.0/16
       EnableDnsSupport: true
       EnableDnsHostnames: true
-      Tags:
-        - Key: Name
-          Value: !Sub ${EnvironmentName}-vpc
 
   InternetGateway:
     Type: AWS::EC2::InternetGateway
-    Properties:
-      Tags:
-        - Key: Name
-          Value: !Sub ${EnvironmentName}-igw
 
   VPCGatewayAttachment:
     Type: AWS::EC2::VPCGatewayAttachment
@@ -58,17 +46,11 @@ Resources:
       CidrBlock: 10.0.1.0/24
       MapPublicIpOnLaunch: true
       AvailabilityZone: !Select [0, !GetAZs '']
-      Tags:
-        - Key: Name
-          Value: !Sub ${EnvironmentName}-public-subnet
 
   RouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref VPC
-      Tags:
-        - Key: Name
-          Value: !Sub ${EnvironmentName}-rtb
 
   Route:
     Type: AWS::EC2::Route
@@ -86,7 +68,7 @@ Resources:
   SecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: Allow HTTP(80) and SSH(22)
+      GroupDescription: Allow HTTP and SSH
       VpcId: !Ref VPC
       SecurityGroupIngress:
         - IpProtocol: tcp
@@ -97,9 +79,6 @@ Resources:
           FromPort: 22
           ToPort: 22
           CidrIp: !Ref AllowedCidr
-      Tags:
-        - Key: Name
-          Value: !Sub ${EnvironmentName}-sg
 
   InstanceProfileRole:
     Type: AWS::IAM::Role
@@ -111,19 +90,13 @@ Resources:
             Principal:
               Service: ec2.amazonaws.com
             Action: sts:AssumeRole
-      Path: /
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
-      Tags:
-        - Key: Name
-          Value: !Sub ${EnvironmentName}-role
 
   InstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
-      Path: /
-      Roles:
-        - !Ref InstanceProfileRole
+      Roles: [!Ref InstanceProfileRole]
 
   EC2Instance:
     Type: AWS::EC2::Instance
@@ -131,12 +104,9 @@ Resources:
       InstanceType: !Ref InstanceType
       IamInstanceProfile: !Ref InstanceProfile
       SubnetId: !Ref PublicSubnet
-      SecurityGroupIds:
-        - !Ref SecurityGroup
+      SecurityGroupIds: [!Ref SecurityGroup]
       ImageId: !Ref LatestAmiId
-      Tags:
-        - Key: Name
-          Value: !Sub ${EnvironmentName}-ec2
+      KeyName: !Ref KeyName
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash
@@ -145,8 +115,6 @@ Resources:
           dnf -y install httpd git || yum -y install httpd git
           systemctl enable httpd
           systemctl start httpd
-
-          # Clone repo and copy index.html
           cd /tmp
           git clone ${RepoUrl} apprepo
           cp apprepo/index.html /var/www/html/index.html
@@ -155,6 +123,3 @@ Outputs:
   PublicIP:
     Description: Public IP of the EC2 instance
     Value: !GetAtt EC2Instance.PublicIp
-  InstanceId:
-    Description: EC2 instance ID
-    Value: !Ref EC2Instance
