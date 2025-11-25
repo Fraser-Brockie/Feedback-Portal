@@ -132,7 +132,9 @@ Resources:
       DeploymentGroupName: FeedbackPortalDG
       ServiceRoleArn: !GetAtt CodeDeployServiceRole.Arn
       Ec2TagFilters:
-        - { Key: Name, Value: !Sub ${AWS::StackName}-ec2, Type: KEY_AND_VALUE }
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-ec2"
+          Type: KEY_AND_VALUE
       DeploymentStyle:
         DeploymentType: IN_PLACE
         DeploymentOption: WITH_TRAFFIC_CONTROL
