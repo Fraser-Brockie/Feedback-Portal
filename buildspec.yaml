@@ -1,0 +1,21 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - echo "Install step"
+  pre_build:
+    commands:
+      - echo "Pre-build checks"
+      - test -f app/index.html
+  build:
+    commands:
+      - echo "Packaging artefact"
+      - mkdir -p dist/app dist/scripts
+      - cp -r app/* dist/app/
+      - cp scripts/verify.sh dist/scripts/
+      - cp appspec.yml dist/
+artifacts:
+  files:
+    - dist/**/*
+  discard-paths: yes
