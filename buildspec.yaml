@@ -17,13 +17,13 @@ phases:
   post_build:
     commands:
       - echo "Uploading artefact to S3"
-      - aws s3 cp dist/index.html s3://<your-artifact-bucket>/index.html
+      - aws s3 cp dist/index.html s3://devops-demo-fraser/index.html
       - echo "Deploying via SSM"
       - aws ssm send-command \
         --targets "Key=instanceIds,Values=i-030dfd73910eec9a9" \
         --document-name "AWS-RunShellScript" \
         --comment "Deploy web app" \
-        --parameters 'commands=["aws s3 cp s3://<your-artifact-bucket>/index.html /var/www/html/index.html","sudo systemctl restart httpd"]'
+        --parameters 'commands=["aws s3 cp s3://devops-demo-fraser/index.html /var/www/html/index.html","sudo systemctl restart httpd"]'
 artifacts:
   files:
     - dist/**/*
