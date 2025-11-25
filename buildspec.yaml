@@ -14,7 +14,6 @@ phases:
       - mkdir -p dist/app dist/scripts
       - cp -r app/* dist/app/
       - cp scripts/verify.sh dist/scripts/
-      - cp appspec.yml dist/
 artifacts:
   files:
     - dist/**/*
