@@ -1,0 +1,38 @@
+name: Deploy EC2 stack
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-west-2
+
+      - name: Validate template
+        run: |
+          aws cloudformation validate-template \
+            --template-body file://cloudformation/ec2-vpc.yml
+
+      - name: Deploy stack
+        run: |
+          aws cloudformation deploy \
+            --template-file cloudformation/ec2-vpc.yml \
+            --stack-name ec2-demo-stack \
+            --parameter-overrides EnvironmentName=demo AllowedCidr=0.0.0.0/0 InstanceType=t3.micro \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --no-fail-on-empty-changeset
+
+      - name: Output stack info
+        run: |
+          aws cloudformation describe-stacks --stack-name ec2-demo-stack \
+            --query "Stacks[0].Outputs"
