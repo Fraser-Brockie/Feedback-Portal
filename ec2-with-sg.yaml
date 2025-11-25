@@ -56,12 +56,7 @@ Resources:
           systemctl enable httpd
           cd /var/www/html
           git clone https://github.com/Fraser-Brockie/Feedback-Portal.git
-          cp -v Feedback-Portal/web-app/feedback.html /var/www/html/
-          chown apache:apache /var/www/html/feedback.html
-          chmod 644 /var/www/html/feedback.html
-          echo "Copied feedback.html" >> /var/log/user-data.log
-          systemctl restart httpd
-
+          cp -r feedback-portal/web-app/* .
 
 Outputs:
   InstancePublicIP:
