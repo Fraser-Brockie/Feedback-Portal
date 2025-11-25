@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Governance-grade minimal VPC + EC2 with Apache in eu-west-2
+Description: Governance-grade minimal VPC + EC2 with Apache serving repo index.html
 
 Parameters:
   EnvironmentName:
@@ -21,7 +21,11 @@ Parameters:
   LatestAmiId:
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
     Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-x86_64
-    Description: SSM path to the latest Amazon Linux 2023 x86_64 AMI in eu-west-2
+    Description: Latest Amazon Linux 2023 AMI (x86_64) in eu-west-2
+  RepoUrl:
+    Type: String
+    Default: https://github.com/<your-org>/<your-repo>.git
+    Description: Public GitHub repo URL containing index.html
 
 Resources:
   VPC:
@@ -137,12 +141,15 @@ Resources:
         Fn::Base64: !Sub |
           #!/bin/bash
           set -euo pipefail
-          # AL2023 uses dnf; keep yum as fallback for image variations
           dnf -y update || yum -y update
-          dnf -y install httpd || yum -y install httpd
+          dnf -y install httpd git || yum -y install httpd git
           systemctl enable httpd
           systemctl start httpd
-          echo "<h1>${EnvironmentName} deployment is live</h1>" > /var/www/html/index.html
+
+          # Clone repo and copy index.html
+          cd /tmp
+          git clone ${RepoUrl} apprepo
+          cp apprepo/index.html /var/www/html/index.html
 
 Outputs:
   PublicIP:
